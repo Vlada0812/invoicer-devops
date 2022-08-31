@@ -10,17 +10,28 @@ jobs:
    - checkout
    - setup_remote_docker
 
-   - run: echo 'export GOPATH_HEAD="$(echo ${GOPATH}|cut -d ':' -f 1)"' >> $BASH_ENV
-   - run: echo 'export GOPATH_BASE="${GOPATH_HEAD}/src/github.com/${CIRCLE_PROJECT_USERNAME}"' >> $BASH_ENV
-   - run: echo 'export DOCKER_REPO="$(if [ ${CIRCLE_PROJECT_USERNAME} == 'Securing-DevOps' ]; then echo securingdevops; else echo $DOCKER_USER; fi)"' >> $BASH_ENV
+   - run: 
+      name: Setup environment
+      command: |
+       gb="/src/github.com/${CIRCLE_PROJECT_USERNAME}";
+       if [ ${CIRCLE_PROJECT_USERNAME} == 'Securing-DevOps' ]; then
+         dr="securingdevops"
+       else
+         dr=$DOCKER_USER
+       fi
+       cat >> $BASH_ENV << EOF
+       export GOPATH_HEAD="$(echo ${GOPATH}|cut -d ':' -f 1)"
+       export GOPATH_BASE="$(echo ${GOPATH}|cut -d ':' -f 1)${gb}"
+       export DOCKER_REPO="$dr"
+       EOF
    - run: mkdir -p "${GOPATH_BASE}"
    - run: mkdir -p "${GOPATH_HEAD}/bin"
-   - run: go env -w GO111MODULE=auto
-   - run: go install github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}@latest
+#   - run: go install github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}@latest
        
    - run:
       name: Testing application
       command: |
+          go install github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}@latest;
           go test \
           github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
   

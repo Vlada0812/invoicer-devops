@@ -27,6 +27,13 @@ jobs:
        export DOCKER_REPO="$dr"
        EOF
 
+   - run: 
+      name: what is GOPATH_BASE ?
+      command: echo ${GOPATH_BASE}
+   - run: 
+      name: what is GOPATH_HEAD ?
+      command: echo ${GOPATH_HEAD}
+      
    - run: mkdir -p "${GOPATH_BASE}"
    - run: mkdir -p "${GOPATH_HEAD}/bin"
 #   - run: go install github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}@latest

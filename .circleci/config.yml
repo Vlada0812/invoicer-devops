@@ -10,24 +10,23 @@ jobs:
    - checkout
    - setup_remote_docker
 
-   - run:
-      name: "What was my custom circleci project username?"
-      command: echo ${CIRCLE_PROJECT_USERNAME} 
-
    - run: 
       name: Setup environment
       command: |
        gb="/src/github.com/${CIRCLE_PROJECT_USERNAME}";
        if [ ${CIRCLE_PROJECT_USERNAME} == 'Vlada0812' ]; then
          dr="securingdevops"
+         echo $dr
        else
          dr=$DOCKER_USER
+         echo $dr
        fi
        cat >> $BASH_ENV << EOF
        export GOPATH_HEAD="$(echo ${GOPATH}|cut -d ':' -f 1)"
        export GOPATH_BASE="$(echo ${GOPATH}|cut -d ':' -f 1)${gb}"
        export DOCKER_REPO="$dr"
        EOF
+
    - run: mkdir -p "${GOPATH_BASE}"
    - run: mkdir -p "${GOPATH_HEAD}/bin"
 #   - run: go install github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}@latest

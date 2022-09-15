@@ -27,6 +27,9 @@ jobs:
        export DOCKER_REPO="$dr"
        EOF
        
+   - run: mkdir -p "${GOPATH_BASE}"
+   - run: mkdir -p "${GOPATH_HEAD}/bin"
+       
    - run:
       name: Testing application
       command: |

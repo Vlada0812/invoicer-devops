@@ -27,8 +27,8 @@ jobs:
        export DOCKER_REPO="$dr"
        EOF
    - run: 
-      name: what is DOCKER_REPO ?
-      command: echo ${DOCKER_REPO}
+      name: what is CIRCLE_PROJECT_REPONAME ?
+      command: echo ${CIRCLE_PROJECT_REPONAME}
 
    - run: 
       name: what is GOPATH_BASE ?

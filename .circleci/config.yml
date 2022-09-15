@@ -30,11 +30,11 @@ jobs:
    - run: mkdir -p "${GOPATH_BASE}"
    - run: mkdir -p "${GOPATH_HEAD}/bin"
        
-   - run:
-      name: Testing application
-      command: |
-          go test \
-          github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
+   # - run:
+   #    name: Testing application
+   #    command: |
+   #        go test \
+   #        github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
    
    - run:
       name: Build application container
@@ -47,7 +47,7 @@ jobs:
    - run:
       name: Run application in background
       command: |
-        docker run ${DOCKER_REPO}/${CIRCLE_PROJECT_REPONAME}
+        docker run ${DOCKER_REPO}/${CIRCLE_PROJECT_REPONAME}:latest
       background: true
 
    - deploy:

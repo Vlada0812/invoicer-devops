@@ -26,19 +26,6 @@ jobs:
        export GOPATH_BASE="$(echo ${GOPATH}|cut -d ':' -f 1)${gb}"
        export DOCKER_REPO="$dr"
        EOF
-   - run: 
-      name: what is CIRCLE_PROJECT_REPONAME ?
-      command: echo ${CIRCLE_PROJECT_REPONAME}
-
-   - run: 
-      name: what is CIRCLE_PROJECT_USERNAME ?
-      command: echo github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
-   - run: 
-      name: what is GOPATH_HEAD ?
-      command: echo ${GOPATH_HEAD}
-
-   - run: mkdir -p "${GOPATH_BASE}"
-   - run: mkdir -p "${GOPATH_HEAD}/bin"
        
    - run:
       name: Testing application

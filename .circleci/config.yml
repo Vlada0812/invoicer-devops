@@ -31,8 +31,8 @@ jobs:
       command: echo ${CIRCLE_PROJECT_REPONAME}
 
    - run: 
-      name: what is GOPATH_BASE ?
-      command: echo ${GOPATH_BASE}
+      name: what is CIRCLE_PROJECT_USERNAME ?
+      command: echo github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
    - run: 
       name: what is GOPATH_HEAD ?
       command: echo ${GOPATH_HEAD}

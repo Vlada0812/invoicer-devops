@@ -44,8 +44,6 @@ jobs:
    - run:
       name: Testing application
       command: |
-          go install github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}@latest;
-          go mod init;
           go test \
           github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
   

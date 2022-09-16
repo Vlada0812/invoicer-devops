@@ -30,6 +30,11 @@ import (
 	"go.mozilla.org/mozlog"
 )
 
+type invoicer struct {
+	db    *gorm.DB
+	store *gormstore.Store
+}
+
 func init() {
 	// initialize the logger
 	mozlog.Logger.LoggerName = "invoicer"

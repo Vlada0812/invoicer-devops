@@ -9,12 +9,14 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"

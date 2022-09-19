@@ -13,6 +13,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -30,6 +31,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
+
 // const defaultUser string = "samantha"
 // const defaultPass string = "1ns3cur3"
 
@@ -38,6 +40,7 @@ import (
 // 	mozlog.Logger.LoggerName = "invoicer"
 // 	log.SetFlags(0)
 // }
+
 
 type invoicer struct {
 	db    *gorm.DB
@@ -231,6 +234,7 @@ func (iv *invoicer) deleteInvoice(w http.ResponseWriter, r *http.Request) {
 }
 
 func (iv *invoicer) getIndex(w http.ResponseWriter, r *http.Request) {
+
 	// if len(r.Header.Get("Authorization")) < 8 || r.Header.Get("Authorization")[0:5] != `Basic` {
 	// 	requestBasicAuth(w)
 	// 	return
@@ -250,6 +254,7 @@ func (iv *invoicer) getIndex(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	// log.Println("serving index page")
+
 	w.Header().Add("Content-Security-Policy", "default-src 'self'; child-src 'self;")
 	w.Header().Add("X-Frame-Options", "SAMEORIGIN")
 	w.Write([]byte(`
@@ -286,11 +291,13 @@ func getHeartbeat(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("I am alive"))
 }
 
+
 // func requestBasicAuth(w http.ResponseWriter) {
 // 	w.Header().Set("WWW-Authenticate", `Basic realm="invoicer"`)
 // 	w.WriteHeader(401)
 // 	w.Write([]byte(`please authenticate`))
 // }
+
 
 // handleVersion returns the current version of the API
 func getVersion(w http.ResponseWriter, r *http.Request) {
@@ -300,6 +307,7 @@ func getVersion(w http.ResponseWriter, r *http.Request) {
 "commit": "%s",
 "build": "https://circleci.com/gh/Securing-DevOps/invoicer/"
 }`, version, commit)))
+
 }
 
 var CSRFKey []byte

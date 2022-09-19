@@ -13,7 +13,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -28,7 +27,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/wader/gormstore"
-	"go.mozilla.org/mozlog"
 	"golang.org/x/oauth2"
 )
 

@@ -8,6 +8,10 @@ package main
 //go:generate ./version.sh
 
 import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/base64"
 	"fmt"
@@ -25,16 +29,17 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/wader/gormstore"
 	"go.mozilla.org/mozlog"
+	"golang.org/x/oauth2"
 )
 
-const defaultUser string = "samantha"
-const defaultPass string = "1ns3cur3"
+// const defaultUser string = "samantha"
+// const defaultPass string = "1ns3cur3"
 
-func init() {
-	// initialize the logger
-	mozlog.Logger.LoggerName = "invoicer"
-	log.SetFlags(0)
-}
+// func init() {
+// 	// initialize the logger
+// 	mozlog.Logger.LoggerName = "invoicer"
+// 	log.SetFlags(0)
+// }
 
 type invoicer struct {
 	db    *gorm.DB
@@ -64,8 +69,21 @@ func main() {
 		panic("failed to connect database")
 	}
 
+	// initialize the session store
+	iv.store = gormstore.New(db, CSRFKey)
+	quit := make(chan struct{})
+	go iv.store.PeriodicCleanup(1*time.Hour, quit)
+
 	iv.db = db
 	iv.db.AutoMigrate(&Invoice{}, &Charge{})
+	iv.db.LogMode(true)
+
+	//initialize CSRF Token
+	CSRFKey = make([]byte, 128)
+	_, err = rand.Read(CSRFKey)
+	if err != nil {
+		log.Fatal("error initializing CSRF Key:", err)
+	}
 
 	// register routes
 	r := mux.NewRouter()
@@ -77,6 +95,9 @@ func main() {
 	r.HandleFunc("/invoice/{id:[0-9]+}", iv.deleteInvoice).Methods("DELETE")
 	r.HandleFunc("/invoice/delete/{id:[0-9]+}", iv.deleteInvoice).Methods("GET")
 	r.HandleFunc("/__version__", getVersion).Methods("GET")
+
+	r.HandleFunc("/authenticate", iv.getAuthenticate).Methods("GET")
+	r.HandleFunc("/oauth2callback", iv.getOAuth2Callback).Methods("GET")
 
 	// handle static files
 	r.Handle("/statics/{staticfile}",
@@ -156,10 +177,11 @@ func (iv *invoicer) postInvoice(w http.ResponseWriter, r *http.Request) {
 	}
 	iv.db.Create(&i1)
 	iv.db.Last(&i1)
+	log.Printf("%+v\n", i1)
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(fmt.Sprintf("created invoice %d", i1.ID)))
-	al := appLog{Message: fmt.Sprintf("created invoice %d", i1.ID), Action: "post-invoice"}
-	al.log(r)
+	// al := appLog{Message: fmt.Sprintf("created invoice %d", i1.ID), Action: "post-invoice"}
+	// al.log(r)
 }
 
 func (iv *invoicer) putInvoice(w http.ResponseWriter, r *http.Request) {
@@ -186,12 +208,17 @@ func (iv *invoicer) putInvoice(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%+v\n", i1)
 	w.WriteHeader(http.StatusAccepted)
 	w.Write([]byte(fmt.Sprintf("updated invoice %d", i1.ID)))
-	al := appLog{Message: fmt.Sprintf("updated invoice %d", i1.ID), Action: "put-invoice"}
-	al.log(r)
+	// al := appLog{Message: fmt.Sprintf("updated invoice %d", i1.ID), Action: "put-invoice"}
+	// al.log(r)
 }
 
 func (iv *invoicer) deleteInvoice(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+	if !checkCSRFToken(r.Header.Get("X-CSRF-Token")) {
+		w.WriteHeader(http.StatusNotAcceptable)
+		w.Write([]byte("Invalid CSRF Token"))
+		return
+	}
 	log.Println("deleting invoice", vars["id"])
 	var i1 Invoice
 	id, _ := strconv.Atoi(vars["id"])
@@ -200,30 +227,30 @@ func (iv *invoicer) deleteInvoice(w http.ResponseWriter, r *http.Request) {
 	iv.db.Delete(&i1)
 	w.WriteHeader(http.StatusAccepted)
 	w.Write([]byte(fmt.Sprintf("deleted invoice %d", i1.ID)))
-	al := appLog{Message: fmt.Sprintf("deleted invoice %d", i1.ID), Action: "delete-invoice"}
-	al.log(r)
+	// al := appLog{Message: fmt.Sprintf("deleted invoice %d", i1.ID), Action: "delete-invoice"}
+	// al.log(r)
 }
 
 func (iv *invoicer) getIndex(w http.ResponseWriter, r *http.Request) {
-	if len(r.Header.Get("Authorization")) < 8 || r.Header.Get("Authorization")[0:5] != `Basic` {
-		requestBasicAuth(w)
-		return
-	}
-	authbytes, err := base64.StdEncoding.DecodeString(r.Header.Get("Authorization")[6:])
-	if err != nil {
-		requestBasicAuth(w)
-		return
-	}
+	// if len(r.Header.Get("Authorization")) < 8 || r.Header.Get("Authorization")[0:5] != `Basic` {
+	// 	requestBasicAuth(w)
+	// 	return
+	// }
+	// authbytes, err := base64.StdEncoding.DecodeString(r.Header.Get("Authorization")[6:])
+	// if err != nil {
+	// 	requestBasicAuth(w)
+	// 	return
+	// }
 
-	authstr := fmt.Sprintf("%s", authbytes)
-	username := authstr[0:strings.Index(authstr, ":")]
-	password := authstr[strings.Index(authstr, ":")+1:]
-	if username != defaultUser && password != defaultPass {
-		requestBasicAuth(w)
-		return
-	}
+	// authstr := fmt.Sprintf("%s", authbytes)
+	// username := authstr[0:strings.Index(authstr, ":")]
+	// password := authstr[strings.Index(authstr, ":")+1:]
+	// if username != defaultUser && password != defaultPass {
+	// 	requestBasicAuth(w)
+	// 	return
+	// }
 
-	log.Println("serving index page")
+	// log.Println("serving index page")
 	w.Header().Add("Content-Security-Policy", "default-src 'self'; child-src 'self;")
 	w.Header().Add("X-Frame-Options", "SAMEORIGIN")
 	w.Write([]byte(`
@@ -237,6 +264,7 @@ func (iv *invoicer) getIndex(w http.ResponseWriter, r *http.Request) {
     </head>
     <body>
 	<h1>Invoicer Web</h1>
+	<p><a href="/authenticate">Authenticate with Google</a></p>
         <p class="desc-invoice"></p>
         <div class="invoice-details">
         </div>
@@ -244,6 +272,7 @@ func (iv *invoicer) getIndex(w http.ResponseWriter, r *http.Request) {
         <form id="invoiceGetter" method="GET">
             <label>ID :</label>
             <input id="invoiceid" type="text" />
+			<input type="hidden" name="CSRFToken" value="` + makeCSRFToken() + `">
             <input type="submit" />
         </form>
         <form id="invoiceDeleter" method="DELETE">
@@ -258,11 +287,11 @@ func getHeartbeat(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("I am alive"))
 }
 
-func requestBasicAuth(w http.ResponseWriter) {
-	w.Header().Set("WWW-Authenticate", `Basic realm="invoicer"`)
-	w.WriteHeader(401)
-	w.Write([]byte(`please authenticate`))
-}
+// func requestBasicAuth(w http.ResponseWriter) {
+// 	w.Header().Set("WWW-Authenticate", `Basic realm="invoicer"`)
+// 	w.WriteHeader(401)
+// 	w.Write([]byte(`please authenticate`))
+// }
 
 // handleVersion returns the current version of the API
 func getVersion(w http.ResponseWriter, r *http.Request) {
@@ -272,4 +301,65 @@ func getVersion(w http.ResponseWriter, r *http.Request) {
 "commit": "%s",
 "build": "https://circleci.com/gh/Securing-DevOps/invoicer/"
 }`, version, commit)))
+}
+
+var CSRFKey []byte
+
+func makeCSRFToken() string {
+	msg := make([]byte, 32)
+	rand.Read(msg)
+	mac := hmac.New(sha256.New, CSRFKey)
+	mac.Write(msg)
+	return base64.StdEncoding.EncodeToString(msg) + `$` + base64.StdEncoding.EncodeToString(mac.Sum(nil))
+}
+
+func checkCSRFToken(token string) bool {
+	mac := hmac.New(sha256.New, CSRFKey)
+	tokenParts := strings.Split(token, "$")
+	if len(tokenParts) != 2 {
+		return false
+	}
+	msg, _ := base64.StdEncoding.DecodeString(tokenParts[0])
+	messageMAC, _ := base64.StdEncoding.DecodeString(tokenParts[1])
+	mac.Write([]byte(msg))
+	expectedMAC := mac.Sum(nil)
+	return hmac.Equal(messageMAC, expectedMAC)
+}
+
+var oauthCfg = &oauth2.Config{
+	ClientID:     "300637177709-a5bhfau7su6luc6g64iefag24hsd7fgc.apps.googleusercontent.com",
+	ClientSecret: "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",
+	RedirectURL:  "http://invoicer-api.eba-subft4h8.us-east-1.elasticbeanstalk.com/oauth2callback",
+	Scopes:       []string{"https://www.googleapis.com/auth/userinfo.profile"},
+	Endpoint: oauth2.Endpoint{
+		AuthURL:  "https://accounts.google.com/o/oauth2/auth",
+		TokenURL: "https://accounts.google.com/o/oauth2/token",
+	},
+}
+
+func (iv *invoicer) getAuthenticate(w http.ResponseWriter, r *http.Request) {
+	//Get the Google URL which shows the Authentication page to the user
+	url := oauthCfg.AuthCodeURL(makeCSRFToken())
+	//redirect user to that page
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+}
+
+func (iv *invoicer) getOAuth2Callback(w http.ResponseWriter, r *http.Request) {
+	if !checkCSRFToken(r.FormValue("state")) {
+		w.WriteHeader(http.StatusNotAcceptable)
+		w.Write([]byte("Failed to verify oauth state via CSRF token '" + r.FormValue("state") + "'"))
+		return
+	}
+	token, err := oauthCfg.Exchange(oauth2.NoContext, r.FormValue("code"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotAcceptable)
+		w.Write([]byte("Failed to obtain token from oauth code " + r.FormValue("code")))
+		return
+	}
+	token, _ := oauthCfg.Exchange(oauth2.NoContext,r.FormValue("code"))
+	client := oauthCfg.Client(oauth2.NoContext, token)
+	resp, _ := client.Get(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json`)
+	buf := make([]byte, 1024)
+	resp.Body.Read(buf)
+	w.Write([]byte(fmt.Sprintf(`<html><body>You are now authenticated as %s</body></html>`, string(buf))))
 }

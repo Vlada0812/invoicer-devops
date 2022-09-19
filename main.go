@@ -350,12 +350,12 @@ func (iv *invoicer) getOAuth2Callback(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Failed to verify oauth state via CSRF token '" + r.FormValue("state") + "'"))
 		return
 	}
-	token, err := oauthCfg.Exchange(oauth2.NoContext, r.FormValue("code"))
-	if err != nil {
-		w.WriteHeader(http.StatusNotAcceptable)
-		w.Write([]byte("Failed to obtain token from oauth code " + r.FormValue("code")))
-		return
-	}
+	// token, err := oauthCfg.Exchange(oauth2.NoContext, r.FormValue("code"))
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusNotAcceptable)
+	// 	w.Write([]byte("Failed to obtain token from oauth code " + r.FormValue("code")))
+	// 	return
+	// }
 	token, _ := oauthCfg.Exchange(oauth2.NoContext,r.FormValue("code"))
 	client := oauthCfg.Client(oauth2.NoContext, token)
 	resp, _ := client.Get(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json`)

@@ -72,6 +72,7 @@ jobs:
    #       govend -u --prune && git diff --quiet 
    #       )
 
+
    - deploy:
       command: |
           if [ "${CIRCLE_BRANCH}" == "master" ]; then

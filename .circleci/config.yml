@@ -32,11 +32,11 @@ jobs:
    - run: go get github.com/govend/govend
        
 
-   # - run:
-   #    name: Testing application
-   #    command: |
-   #        go test \
-   #        github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
+  # - run:
+  #    name: Testing application
+  #    command: |
+  #        go test \
+  #        github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
    
   #  - run:
   #     name: Build application container
